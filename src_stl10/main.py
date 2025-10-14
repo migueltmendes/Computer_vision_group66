@@ -8,7 +8,7 @@ from torch import nn
 from torchsummary import summary
 
 from src_stl10.data import get_dataloaders
-from src_stl10.models import get_model
+from src_stl10.models import BOTTLENECK_LIST, WrapperNetwork, get_model
 from src_stl10.train import train
 
 
@@ -32,6 +32,17 @@ def parse_args():
         "--freeze_features",
         action="store_true",
         help="Whether to freeze the feature extraction layers",
+    )
+    parser.add_argument(
+        "--load_best",
+        action="store_true",
+        help="Whether to load the best model or not.",
+    )
+    parser.add_argument(
+        "--bottleneck_type",
+        type=str,
+        choices=BOTTLENECK_LIST,
+        help="Type of bottleneck to use.",
     )
     parser.add_argument(
         "--use_amp",
@@ -59,9 +70,13 @@ def main():
     train_dataloader, test_dataloader = get_dataloaders(
         batch_size=args.batch_size, num_workers=args.num_workers
     )
-    model = get_model(freeze_features=args.freeze_features)
+    convnet = get_model(load_best=args.load_best)
+
+    model = WrapperNetwork(convnet, args.bottleneck_type, args.freeze_features)
 
     summary(model.cpu(), (3, 96, 96), device="cpu")
+
+    breakpoint()
 
     out = train(
         model,

@@ -29,7 +29,9 @@ def validate(net, testloader):
 
         # Iterate over the test dataset
         for inputs, labels in testloader:
-            inputs, labels = inputs.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+            inputs, labels = inputs.to(device, non_blocking=True), labels.to(
+                device, non_blocking=True
+            )
             outputs = net(inputs)
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
@@ -41,7 +43,16 @@ def validate(net, testloader):
     return accuracy
 
 
-def train(net, train_loader, test_loader, criterion, optimizer, epochs, device=None, use_amp=False):
+def train(
+    net,
+    train_loader,
+    test_loader,
+    criterion,
+    optimizer,
+    epochs,
+    device=None,
+    use_amp=False,
+):
     """
     Trains the neural network model.
 
@@ -79,7 +90,9 @@ def train(net, train_loader, test_loader, criterion, optimizer, epochs, device=N
         running_loss, correct, total = 0.0, 0, 0
 
         for inputs, labels in train_loader:
-            inputs, labels = inputs.to(device, non_blocking=True), labels.to(device, non_blocking=True)
+            inputs, labels = inputs.to(device, non_blocking=True), labels.to(
+                device, non_blocking=True
+            )
 
             optimizer.zero_grad(set_to_none=True)
 
