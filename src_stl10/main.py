@@ -50,7 +50,7 @@ def parse_args():
         help="Whether to use Automatic Mixed Precision (AMP) for training",
     )
     parser.add_argument(
-        "--lr", type=float, default=0.05, help="Learning rate for the optimizer"
+        "--lr", type=float, default=0.0001, help="Learning rate for the optimizer"
     )
     parser.add_argument(
         "--momentum", type=float, default=0.9, help="Momentum for the optimizer"
@@ -75,8 +75,6 @@ def main():
     model = WrapperNetwork(convnet, args.bottleneck_type, args.freeze_features)
 
     summary(model.cpu(), (3, 96, 96), device="cpu")
-
-    breakpoint()
 
     out = train(
         model,
