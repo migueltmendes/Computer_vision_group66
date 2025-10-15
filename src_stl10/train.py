@@ -1,11 +1,16 @@
-from datetime import datetime
+import sys
 from pathlib import Path
 
+sys.path.append(str(Path(__file__).parents[1]))
+
 import torch
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+from src_stl10.utils import save_stats
 
-def validate(net, testloader):
+
+def validate(net: torch.nn.Module, testloader: DataLoader):
     """
     Validates the model on the test dataset.
 
@@ -44,14 +49,15 @@ def validate(net, testloader):
 
 
 def train(
-    net,
-    train_loader,
-    test_loader,
-    criterion,
-    optimizer,
-    epochs,
+    net: torch.nn.Module,
+    train_loader: DataLoader,
+    test_loader: DataLoader,
+    criterion: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    epochs: int,
+    hp_conf: str,
     device=None,
-    use_amp=False,
+    use_amp: bool=False,
 ):
     """
     Trains the neural network model.
@@ -66,13 +72,12 @@ def train(
     Returns:
         None
     """
+
     # YOUR CODE HERE
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net.to(device)
 
-    model_name = net.__class__.__name__
-    ts = datetime.now().strftime("%Y-%m-%d")
-    log_dir = Path(__file__).parents[1] / "runs" / "STL10" / model_name / ts
+    log_dir = Path(__file__).parents[1] / "runs" / "STL10" / hp_conf
     log_dir.mkdir(parents=True, exist_ok=True)
     writer = SummaryWriter(log_dir=str(log_dir))
     print(f"[TB] Logging to: {log_dir.resolve()}")
@@ -84,6 +89,9 @@ def train(
 
     if use_amp:
         scaler = torch.cuda.amp.GradScaler()
+
+    # Cosine annealing scheduler (no restarts): decay LR smoothly over the full training
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.0)
 
     for ep in range(1, epochs + 1):
         net.train()
@@ -109,6 +117,7 @@ def train(
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
+            scheduler.step()
 
             running_loss += loss.item() * labels.size(0)
             _, predicted = outputs.max(1)
@@ -124,12 +133,15 @@ def train(
         writer.add_scalar("Loss/Train", epoch_loss, ep)
         writer.add_scalar("Acc/Train", epoch_acc, ep)
         writer.add_scalar("Acc/Test", test_acc, ep)
+        # log learning rate
+        writer.add_scalar("LR", optimizer.param_groups[0]["lr"], ep)
 
         print(
             f"Epoch {ep:03d}/{epochs} | "
             f"train_loss={epoch_loss:.4f} "
             f"train_acc={epoch_acc:.2f}%  "
             f"test_acc={test_acc:.2f}%  "
+            f"lr={optimizer.param_groups[0]['lr']:.6f}"
         )
 
         train_losses.append(epoch_loss)
@@ -137,7 +149,22 @@ def train(
         # test_losses.append(test_loss)
         test_accs.append(test_acc)
 
-        writer.flush()
-        writer.close()
+    writer.flush()
 
-    return net, train_losses, train_accs, test_accs
+    # step the cosine scheduler once per epoch
+    scheduler.step()
+
+    # close the SummaryWriter after training
+    writer.close()
+
+    # Save weights in writer folder
+    checkpoint_path = log_dir / "artifacts" / "weights"
+    checkpoint_path.mkdir(parents=True, exist_ok=True)
+    torch.save(net.state_dict(), checkpoint_path / "model.pth")
+
+    # Save losses and accuracies
+    save_stats(
+        log_dir, train_losses, train_accs, test_accs
+    )
+
+    return net, train_losses, train_accs, test_accs, log_dir

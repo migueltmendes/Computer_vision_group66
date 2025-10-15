@@ -1,19 +1,20 @@
+import argparse
 import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parents[1]))
 
 import torch
-from torch import nn
 from torchsummary import summary
 
 from src_stl10.data import get_dataloaders
 from src_stl10.models import BOTTLENECK_LIST, WrapperNetwork, get_model
 from src_stl10.train import train
+from src_stl10.utils import save_embeddings, save_stats, save_summary
+
 
 
 def parse_args():
-    import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -64,6 +65,10 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_hyperparam_conf(args: argparse.Namespace):
+    return f"load_best={args.load_best}_bottleneck={args.bottleneck_type}_freeze_fts={args.freeze_features}_lr={args.lr}_epochs={args.epochs}_wd={args.weight_decay}"
+
+
 def main():
     args = parse_args()
 
@@ -76,11 +81,13 @@ def main():
 
     summary(model.cpu(), (3, 96, 96), device="cpu")
 
-    out = train(
+    hp_conf = get_hyperparam_conf(args)
+
+    model, train_losses, train_accs, test_accs, log_dir = train(
         model,
         train_dataloader,
         test_dataloader,
-        nn.CrossEntropyLoss(),
+        torch.nn.CrossEntropyLoss(),
         torch.optim.SGD(
             model.parameters(),
             lr=args.lr,
@@ -89,7 +96,12 @@ def main():
         ),
         epochs=args.epochs,
         use_amp=args.use_amp,
+        hp_conf=hp_conf,
     )
+
+    save_stats(log_dir, train_losses, train_accs, test_accs)
+    save_summary(args, train_losses, train_accs, test_accs)
+    save_embeddings(model, log_dir, train_dataloader, test_dataloader)
 
 
 if __name__ == "__main__":
