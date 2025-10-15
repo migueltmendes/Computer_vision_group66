@@ -117,12 +117,12 @@ def train(
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
-            scheduler.step()
 
             running_loss += loss.item() * labels.size(0)
             _, predicted = outputs.max(1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
+        scheduler.step()
 
         epoch_loss = running_loss / max(total, 1)
         epoch_acc = 100.0 * correct / max(total, 1)
