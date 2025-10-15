@@ -229,6 +229,11 @@ class WrapperNetwork(nn.Module):
                 f"No implementation for {bottleneck_type}, valid options are {BOTTLENECK_TYPE}"
             )
 
+    def forward_features(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.convnet(x)
+        x = self.intermediate_features(x)
+        return x
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.convnet(x)
         x = self.intermediate_features(x)
