@@ -20,8 +20,8 @@ for BOTTLENECK in "${BOTTLENECK_LIST[@]}"; do
         COUNT=$((COUNT + 1))
         echo "Completed $COUNT/$MAX_COUNT configurations."
 
-        echo "Running with bottleneck=$BOTTLENECK, freeze_features=True, lr=$LR, load_best=False"
-        python3 src_stl10/main.py --bottleneck_type "$BOTTLENECK" --freeze_features --lr "$LR" --use_amp --tag "lr_tuning"
+        echo "Running with bottleneck=$BOTTLENECK, freeze_features=False, lr=$LR, load_best=False"
+        python3 src_stl10/main.py --bottleneck_type "$BOTTLENECK" --lr "$LR" --use_amp --tag "lr_tuning"
 
         COUNT=$((COUNT + 1))
         echo "Completed $COUNT/$MAX_COUNT configurations."
