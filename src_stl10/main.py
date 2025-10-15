@@ -27,6 +27,12 @@ def parse_args():
         help="Number of worker threads for data loading",
     )
     parser.add_argument(
+        "--tag",
+        type=str,
+        default="",
+        help="Hyperparameter configuration identifier",
+    )
+    parser.add_argument(
         "--epochs", type=int, default=20, help="Number of epochs to train the model"
     )
     parser.add_argument(

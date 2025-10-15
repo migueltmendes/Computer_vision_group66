@@ -24,6 +24,7 @@ def save_summary(
             "lr": [args.lr],
             "weight_decay": [args.weight_decay],
             "epochs": [args.epochs],
+            "tag": [args.tag],
             "final_train_loss": [train_losses[-1]],
             "final_train_acc": [train_accs[-1]],
             "final_test_acc": [test_accs[-1]],
