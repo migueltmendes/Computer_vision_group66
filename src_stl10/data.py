@@ -141,28 +141,17 @@ class RandomApply:
         return img
 
 
-STL10_MEAN = [110.98461463, 108.25642656, 99.75725026]
-STL10_STD = [67.71779408, 66.62457103, 68.53612123]
-
-
 def get_dataloaders(batch_size=64, num_workers=4):
 
     train_transform = transforms.Compose(
-        [
-            transforms.ToPILImage(),
-            transforms.RandomHorizontalFlip(),
-            RandomApply(
-                transforms.ColorJitter(
-                    brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2
-                ),
-            ),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=STL10_MEAN, std=STL10_STD),
-        ]
+        [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
 
     test_transform = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize(mean=STL10_MEAN, std=STL10_STD)]
+        [
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+        ]
     )
 
     train_dataset = STL10_loader(train=True, transform=train_transform)
