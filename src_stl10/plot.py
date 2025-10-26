@@ -1,103 +1,106 @@
-import faiss
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from sklearn.manifold import TSNE
 
 
-def plot_tsne(model, train_dataloader, test_dataloader):
-    # Use FAISS to cluster embeddings into 5 clusters
-    n_clusters = 5
-    d = train_embeddings.shape[1]
+def _to_numpy(x):
+    if torch.is_tensor(x):
+        return x.cpu().numpy()
+    return np.asarray(x)
 
-    # Train KMeans on the TRAIN embeddings (so clusters derive from train set)
-    kmeans = faiss.Kmeans(d, n_clusters, niter=50, verbose=False, seed=1234)
-    kmeans.train(train_embeddings)
 
-    # Assign cluster indices for train and test
-    # Build an index from the centroids and search nearest centroid
-    index = faiss.IndexFlatL2(d)
-    index.add(kmeans.centroids)
-    _, train_cluster_labels = index.search(train_embeddings, 1)
-    _, test_cluster_labels = index.search(test_embeddings, 1)
-    train_cluster_labels = train_cluster_labels.ravel()
-    test_cluster_labels = test_cluster_labels.ravel()
+def plot_tsne(
+    train_embeddings,
+    y_train,
+    test_embeddings,
+    y_test,
+    ax_train=None,
+    train_title=None,
+    ax_test=None,
+    test_title=None,
+    fig_path=None,
+    perplexity=30,
+    max_iter=1000,
+    random_state=42,
+):
+    """
+    Compute t-SNE on the concatenation of train+test embeddings and plot
+    train and test separately with true labels. If ax_train and ax_test
+    are provided they will be used, otherwise a new two-column figure
+    is created. No legend is drawn. If fig_path is provided the figure
+    is saved to that path.
+    """
+    train_embeddings = _to_numpy(train_embeddings)
+    test_embeddings = _to_numpy(test_embeddings)
+    y_train = _to_numpy(y_train).ravel()
+    y_test = _to_numpy(y_test).ravel()
 
-    # Compute 2D t-SNE projections (fit separately for train and test)
+    # Fit t-SNE on concatenated embeddings, then split
+    X = np.vstack([train_embeddings, test_embeddings])
     tsne = TSNE(
-        n_components=2, perplexity=30, max_iter=1000, init="pca", random_state=42
+        n_components=2,
+        perplexity=perplexity,
+        max_iter=max_iter,
+        init="pca",
+        random_state=random_state,
     )
+    X2 = tsne.fit_transform(X)
+    n_train = train_embeddings.shape[0]
+    train_tsne = X2[:n_train]
+    test_tsne = X2[n_train:]
 
-    train_tsne = tsne.fit_transform(train_embeddings)
-    test_tsne = tsne.fit_transform(test_embeddings)
+    # Prepare axes
+    created_fig = False
+    if ax_train is None or ax_test is None:
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+        ax_train, ax_test = axes[0], axes[1]
+        created_fig = True
+    else:
+        # if provided, try to get the figure for saving later
+        fig = ax_train.figure
 
-    # Plot 4 plots: train(true), train(cluster), test(true), test(cluster)
-    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
-    plt.tight_layout(h_pad=4, w_pad=4)
-
-    cmap = plt.get_cmap("tab10")
     scatter_kwargs = dict(s=10, alpha=0.8)
 
-    # Top-left: train true labels
-    ax = axes[0, 0]
-    for cls in np.unique(y_train):
+    # Use a consistent colormap across train/test based on union of classes
+    classes = np.unique(np.concatenate([y_train, y_test]))
+    cmap = plt.get_cmap("tab10")
+    colors = {cls: cmap(i % cmap.N) for i, cls in enumerate(classes)}
+
+    # Plot train
+    ax = ax_train
+    for cls in classes:
         mask = y_train == cls
-        ax.scatter(
-            train_tsne[mask, 0],
-            train_tsne[mask, 1],
-            label=str(int(cls)),
-            **scatter_kwargs,
-        )
+        if not np.any(mask):
+            continue
+        ax.scatter(train_tsne[mask, 0], train_tsne[mask, 1], color=colors[cls], **scatter_kwargs)
     ax.set_title("Train embeddings (true labels)")
-    ax.legend(title="Class", markerscale=2, bbox_to_anchor=(1.05, 1), loc="upper left")
+    ax.set_xlabel("t-SNE dim 1")
+    ax.set_ylabel("t-SNE dim 2")
 
-    # Top-right: train clustered labels
-    ax = axes[0, 1]
-    for cls in np.unique(train_cluster_labels):
-        mask = train_cluster_labels == cls
-        ax.scatter(
-            train_tsne[mask, 0],
-            train_tsne[mask, 1],
-            label=f"cluster {int(cls)}",
-            **scatter_kwargs,
-        )
-    ax.set_title(f"Train embeddings (FAISS k={n_clusters})")
-    ax.legend(
-        title="Cluster", markerscale=2, bbox_to_anchor=(1.05, 1), loc="upper left"
-    )
-
-    # Bottom-left: test true labels
-    ax = axes[1, 0]
-    for cls in np.unique(y_test):
+    # Plot test
+    ax = ax_test
+    for cls in classes:
         mask = y_test == cls
-        ax.scatter(
-            test_tsne[mask, 0],
-            test_tsne[mask, 1],
-            label=str(int(cls)),
-            **scatter_kwargs,
-        )
+        if not np.any(mask):
+            continue
+        ax.scatter(test_tsne[mask, 0], test_tsne[mask, 1], color=colors[cls], **scatter_kwargs)
     ax.set_title("Test embeddings (true labels)")
-    ax.legend(title="Class", markerscale=2, bbox_to_anchor=(1.05, 1), loc="upper left")
+    ax.set_xlabel("t-SNE dim 1")
+    ax.set_ylabel("t-SNE dim 2")
 
-    # Bottom-right: test clustered labels
-    ax = axes[1, 1]
-    for cls in np.unique(test_cluster_labels):
-        mask = test_cluster_labels == cls
-        ax.scatter(
-            test_tsne[mask, 0],
-            test_tsne[mask, 1],
-            label=f"cluster {int(cls)}",
-            **scatter_kwargs,
-        )
-    ax.set_title(f"Test embeddings (FAISS k={n_clusters})")
-    ax.legend(
-        title="Cluster", markerscale=2, bbox_to_anchor=(1.05, 1), loc="upper left"
-    )
+    if train_title:
+        ax_train.set_title(train_title)
+    if test_title:
+        ax_test.set_title(test_title)
 
-    for ax in axes.flatten():
-        ax.set_xlabel("t-SNE dim 1")
-        ax.set_ylabel("t-SNE dim 2")
+    plt.tight_layout()
+    if fig_path:
+        fig_path.parent.mkdir(parents=True, exist_ok=True)
+        ax_train.figure.savefig(fig_path.with_name(f"{fig_path.stem}_train.png"), bbox_inches="tight", dpi=100)
+        ax_test.figure.savefig(fig_path.with_name(f"{fig_path.stem}_test.png"), bbox_inches="tight", dpi=100)
+        fig.savefig(fig_path.with_name(f"{fig_path.stem}_combined.png"), bbox_inches="tight", dpi=100)
 
-    plt.subplots_adjust(right=0.78)
-    plt.show()
-    # --- end paste ---
+    if created_fig:
+        return fig, (ax_train, ax_test)
+    return (ax_train, ax_test)
