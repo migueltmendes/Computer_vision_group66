@@ -1,4 +1,4 @@
-feature_type,trial_number,n_clusters,subset_ratio,kernel,uspcale_size,c,gamma_choice,final_gamma_value,mean_ap,AP_frog,AP_automobile,AP_bird,AP_cat,AP_deer
+feature_type,trial_number,n_clusters,subset_ratio,kernel,uspcale_size,c, final_gamma_value,mean_ap,AP_frog,AP_automobile,AP_bird,AP_cat,AP_deer
 SIFT,0,1500,0.4,rbf,(128, 128),1.0,0.001,0.3084,0.2362,0.4850,0.3432,0.2392,0.2386
 SIFT,1,1500,0.4,rbf,(64, 64),1.0,0.01,0.3191,0.2578,0.5048,0.3366,0.2542,0.2418
 SIFT,2,1000,0.4,linear,(96, 96),10.0,N/A,0.3089,0.2405,0.4364,0.3458,0.2832,0.2387

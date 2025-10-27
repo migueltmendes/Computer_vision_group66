@@ -1,4 +1,4 @@
-feature_type,trial_number,n_clusters,subset_ratio,kernel,uspcale_size,c,gamma_choice,final_gamma_value,mean_ap,AP_frog,AP_automobile,AP_bird,AP_cat,AP_deer
+feature_type,trial_number,n_clusters,subset_ratio,kernel,uspcale_size,c,final_gamma_value,mean_ap,AP_frog,AP_automobile,AP_bird,AP_cat,AP_deer
 ORB,0,1000,0.4,rbf,(256, 256),0.1,scale,0.2852,0.3225,0.3053,0.3317,0.2388,0.2276
 ORB,1,500,0.4,rbf,(64, 64),10.0,0.001,0.2389,0.1972,0.2896,0.2632,0.2136,0.2311
 ORB,2,1500,0.5,rbf,(64, 64),10.0,0.01,0.2380,0.2605,0.2607,0.2754,0.1889,0.2043
